@@ -1,0 +1,40 @@
+You are a Verilog expert, and I need your help to write a Verilog code for an Immediate Generator (IMM) module. Below are the detailed requirements:
+
+Module Name: imm
+Input Ports:
+- immin: 25-bit input representing the immediate value from the instruction,but it is actually 32-bit and only the lower 25 bits like [31:7] are used.
+- ExtOP: 3-bit input representing the extension operation type.
+
+Output Ports:
+- immout: 32-bit output representing the extended immediate value.
+
+Function Description:
+This module generates a 32-bit extended immediate value based on the input immediate value and the extension operation type. The extension operation types include I-type, U-type, S-type, B-type, and J-type extensions.
+You need to note that MuxKeyWithDefault is a pre-defined module that can be used to implement a multiplexer with a default value. You can use the pre-defined module MuxKeyWithDefault in your solution instead of using another case statement.
+When you use MuxKeyWithDefault , please note the following:
+1. The first parameter of MuxKeyWithDefault is the output width.
+2. The second parameter is the width of the selection signal.
+3. The third parameter is the default value.
+4. The fourth parameter is the width of the input signals.
+5. When you are instantiating,please note that the four ports are .out .key .default_out and lut,but i need you don't use .out（out） writting type, just directly use the name of the port such as (out, key, default_out, lut)
+Below is an example code. Please write a functionally equivalent ALU module based on the requirements above:
+module imm(
+	input [31:7] immin,
+	input [2:0] ExtOP,
+	output [31:0] immout
+);
+	wire [31:0]immI={{20{immin[31]}},immin[31:20]};
+	wire [31:0]immU={immin[31:12],12'b0};
+	wire [31:0]immS={{20{immin[31]}},immin[31:25],immin[11:7]};
+	wire [31:0]immB={{20{immin[31]}},immin[7],immin[30:25],immin[11:8],1'b0};
+	wire [31:0]immJ={{12{immin[31]}},immin[19:12],immin[20],immin[30:21],1'b0};
+	MuxKeyWithDefault #(5,3,32) immtype (immout,ExtOP,32'b0,{
+		3'b000,immI,
+		3'b001,immU,
+		3'b010,immS,
+		3'b011,immB,
+		3'b100,immJ
+		});
+endmodule
+
+Please write a functionally equivalent imm module based on the requirements above.

@@ -1,0 +1,521 @@
+$date
+	Sun Nov 10 21:06:10 2024
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1ps
+$end
+$scope module fft4_tb $end
+$var wire 10 ! y3_real [9:0] $end
+$var wire 10 " y3_imag [9:0] $end
+$var wire 10 # y2_real [9:0] $end
+$var wire 10 $ y2_imag [9:0] $end
+$var wire 10 % y1_real [9:0] $end
+$var wire 10 & y1_imag [9:0] $end
+$var wire 10 ' y0_real [9:0] $end
+$var wire 10 ( y0_imag [9:0] $end
+$var wire 1 ) valid $end
+$var parameter 32 * DATA_WIDTH $end
+$var reg 1 + clk $end
+$var reg 8 , x0_imag [7:0] $end
+$var reg 8 - x0_real [7:0] $end
+$var reg 8 . x1_imag [7:0] $end
+$var reg 8 / x1_real [7:0] $end
+$var reg 8 0 x2_imag [7:0] $end
+$var reg 8 1 x2_real [7:0] $end
+$var reg 8 2 x3_imag [7:0] $end
+$var reg 8 3 x3_real [7:0] $end
+$scope module fft4_inst $end
+$var wire 1 + clk $end
+$var wire 1 4 en $end
+$var wire 8 5 in0_imag [7:0] $end
+$var wire 8 6 in0_real [7:0] $end
+$var wire 8 7 in1_imag [7:0] $end
+$var wire 8 8 in1_real [7:0] $end
+$var wire 8 9 in2_imag [7:0] $end
+$var wire 8 : in2_real [7:0] $end
+$var wire 8 ; in3_imag [7:0] $end
+$var wire 8 < in3_real [7:0] $end
+$var wire 10 = out0_imag [9:0] $end
+$var wire 10 > out0_real [9:0] $end
+$var wire 10 ? out1_imag [9:0] $end
+$var wire 10 @ out1_real [9:0] $end
+$var wire 10 A out2_imag [9:0] $end
+$var wire 10 B out2_real [9:0] $end
+$var wire 10 C out3_imag [9:0] $end
+$var wire 10 D out3_real [9:0] $end
+$var wire 1 E rst_n $end
+$var wire 1 ) yout_valid $end
+$var parameter 32 F DATA_WIDTH $end
+$var parameter 32 G EXPAND $end
+$var parameter 32 H POINTS $end
+$scope module butterfly_unit_0_0 $end
+$var wire 1 + clk $end
+$var wire 1 I en $end
+$var wire 8 J in1_imag [7:0] $end
+$var wire 8 K in1_real [7:0] $end
+$var wire 8 L in2_imag [7:0] $end
+$var wire 8 M in2_real [7:0] $end
+$var wire 11 N ro_imag [10:0] $end
+$var wire 11 O ro_real [10:0] $end
+$var wire 1 E rst_n $end
+$var wire 1 P valid $end
+$var wire 9 Q out2_real [8:0] $end
+$var wire 9 R out2_imag [8:0] $end
+$var wire 9 S out1_real [8:0] $end
+$var wire 9 T out1_imag [8:0] $end
+$var parameter 32 U DATA_WIDTH $end
+$var parameter 32 V EXPAND $end
+$var parameter 32 W PRECISION $end
+$var reg 5 X en_r [4:0] $end
+$var reg 20 Y in1_imag_d [19:0] $end
+$var reg 20 Z in1_imag_d1 [19:0] $end
+$var reg 20 [ in1_real_d [19:0] $end
+$var reg 20 \ in1_real_d1 [19:0] $end
+$var reg 20 ] out1_imag_r [19:0] $end
+$var reg 20 ^ out1_real_r [19:0] $end
+$var reg 20 _ out2_imag_r [19:0] $end
+$var reg 20 ` out2_real_r [19:0] $end
+$var reg 20 a rod_imag [19:0] $end
+$var reg 20 b rod_imag_0 [19:0] $end
+$var reg 20 c rod_imag_1 [19:0] $end
+$var reg 20 d rod_real [19:0] $end
+$var reg 20 e rod_real_0 [19:0] $end
+$var reg 20 f rod_real_1 [19:0] $end
+$upscope $end
+$scope module butterfly_unit_0_1 $end
+$var wire 1 + clk $end
+$var wire 1 g en $end
+$var wire 8 h in1_imag [7:0] $end
+$var wire 8 i in1_real [7:0] $end
+$var wire 8 j in2_imag [7:0] $end
+$var wire 8 k in2_real [7:0] $end
+$var wire 11 l ro_imag [10:0] $end
+$var wire 11 m ro_real [10:0] $end
+$var wire 1 E rst_n $end
+$var wire 1 n valid $end
+$var wire 9 o out2_real [8:0] $end
+$var wire 9 p out2_imag [8:0] $end
+$var wire 9 q out1_real [8:0] $end
+$var wire 9 r out1_imag [8:0] $end
+$var parameter 32 s DATA_WIDTH $end
+$var parameter 32 t EXPAND $end
+$var parameter 32 u PRECISION $end
+$var reg 5 v en_r [4:0] $end
+$var reg 20 w in1_imag_d [19:0] $end
+$var reg 20 x in1_imag_d1 [19:0] $end
+$var reg 20 y in1_real_d [19:0] $end
+$var reg 20 z in1_real_d1 [19:0] $end
+$var reg 20 { out1_imag_r [19:0] $end
+$var reg 20 | out1_real_r [19:0] $end
+$var reg 20 } out2_imag_r [19:0] $end
+$var reg 20 ~ out2_real_r [19:0] $end
+$var reg 20 !" rod_imag [19:0] $end
+$var reg 20 "" rod_imag_0 [19:0] $end
+$var reg 20 #" rod_imag_1 [19:0] $end
+$var reg 20 $" rod_real [19:0] $end
+$var reg 20 %" rod_real_0 [19:0] $end
+$var reg 20 &" rod_real_1 [19:0] $end
+$upscope $end
+$scope module butterfly_unit_1_0 $end
+$var wire 1 + clk $end
+$var wire 1 '" en $end
+$var wire 9 (" in1_imag [8:0] $end
+$var wire 9 )" in1_real [8:0] $end
+$var wire 9 *" in2_imag [8:0] $end
+$var wire 9 +" in2_real [8:0] $end
+$var wire 11 ," ro_imag [10:0] $end
+$var wire 11 -" ro_real [10:0] $end
+$var wire 1 E rst_n $end
+$var wire 1 ." valid $end
+$var wire 10 /" out2_real [9:0] $end
+$var wire 10 0" out2_imag [9:0] $end
+$var wire 10 1" out1_real [9:0] $end
+$var wire 10 2" out1_imag [9:0] $end
+$var parameter 33 3" DATA_WIDTH $end
+$var parameter 32 4" EXPAND $end
+$var parameter 32 5" PRECISION $end
+$var reg 5 6" en_r [4:0] $end
+$var reg 21 7" in1_imag_d [20:0] $end
+$var reg 21 8" in1_imag_d1 [20:0] $end
+$var reg 21 9" in1_real_d [20:0] $end
+$var reg 21 :" in1_real_d1 [20:0] $end
+$var reg 21 ;" out1_imag_r [20:0] $end
+$var reg 21 <" out1_real_r [20:0] $end
+$var reg 21 =" out2_imag_r [20:0] $end
+$var reg 21 >" out2_real_r [20:0] $end
+$var reg 21 ?" rod_imag [20:0] $end
+$var reg 21 @" rod_imag_0 [20:0] $end
+$var reg 21 A" rod_imag_1 [20:0] $end
+$var reg 21 B" rod_real [20:0] $end
+$var reg 21 C" rod_real_0 [20:0] $end
+$var reg 21 D" rod_real_1 [20:0] $end
+$upscope $end
+$scope module butterfly_unit_1_1 $end
+$var wire 1 + clk $end
+$var wire 1 E" en $end
+$var wire 9 F" in1_imag [8:0] $end
+$var wire 9 G" in1_real [8:0] $end
+$var wire 9 H" in2_imag [8:0] $end
+$var wire 9 I" in2_real [8:0] $end
+$var wire 11 J" ro_imag [10:0] $end
+$var wire 11 K" ro_real [10:0] $end
+$var wire 1 E rst_n $end
+$var wire 1 L" valid $end
+$var wire 10 M" out2_real [9:0] $end
+$var wire 10 N" out2_imag [9:0] $end
+$var wire 10 O" out1_real [9:0] $end
+$var wire 10 P" out1_imag [9:0] $end
+$var parameter 33 Q" DATA_WIDTH $end
+$var parameter 32 R" EXPAND $end
+$var parameter 32 S" PRECISION $end
+$var reg 5 T" en_r [4:0] $end
+$var reg 21 U" in1_imag_d [20:0] $end
+$var reg 21 V" in1_imag_d1 [20:0] $end
+$var reg 21 W" in1_real_d [20:0] $end
+$var reg 21 X" in1_real_d1 [20:0] $end
+$var reg 21 Y" out1_imag_r [20:0] $end
+$var reg 21 Z" out1_real_r [20:0] $end
+$var reg 21 [" out2_imag_r [20:0] $end
+$var reg 21 \" out2_real_r [20:0] $end
+$var reg 21 ]" rod_imag [20:0] $end
+$var reg 21 ^" rod_imag_0 [20:0] $end
+$var reg 21 _" rod_imag_1 [20:0] $end
+$var reg 21 `" rod_real [20:0] $end
+$var reg 21 a" rod_real_0 [20:0] $end
+$var reg 21 b" rod_real_1 [20:0] $end
+$upscope $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+$comment Show the parameter values. $end
+$dumpall
+b11 S"
+b1001 R"
+b1001 Q"
+b11 5"
+b1001 4"
+b1001 3"
+b11 u
+b1001 t
+b1000 s
+b11 W
+b1001 V
+b1000 U
+b100 H
+b1001 G
+b1000 F
+b1000 *
+$end
+#0
+$dumpvars
+bx b"
+bx a"
+bx `"
+bx _"
+bx ^"
+bx ]"
+bx \"
+bx ["
+bx Z"
+bx Y"
+bx X"
+bx W"
+bx V"
+bx U"
+bx T"
+bx P"
+bx O"
+bx N"
+bx M"
+xL"
+b0 K"
+b11000000000 J"
+bx I"
+bx H"
+bx G"
+bx F"
+xE"
+bx D"
+bx C"
+bx B"
+bx A"
+bx @"
+bx ?"
+bx >"
+bx ="
+bx <"
+bx ;"
+bx :"
+bx 9"
+bx 8"
+bx 7"
+bx 6"
+bx 2"
+bx 1"
+bx 0"
+bx /"
+x."
+b1000000000 -"
+b0 ,"
+bx +"
+bx *"
+bx )"
+bx ("
+x'"
+bx &"
+bx %"
+bx $"
+bx #"
+bx ""
+bx !"
+bx ~
+bx }
+bx |
+bx {
+bx z
+bx y
+bx x
+bx w
+bx v
+bx r
+bx q
+bx p
+bx o
+xn
+b1000000000 m
+b0 l
+b11 k
+b0 j
+b10 i
+b0 h
+1g
+bx f
+bx e
+bx d
+bx c
+bx b
+bx a
+bx `
+bx _
+bx ^
+bx ]
+bx \
+bx [
+bx Z
+bx Y
+bx X
+bx T
+bx S
+bx R
+bx Q
+xP
+b1000000000 O
+b0 N
+b11111111 M
+b0 L
+b1 K
+b0 J
+1I
+1E
+bx D
+bx C
+bx B
+bx A
+bx @
+bx ?
+bx >
+bx =
+b11 <
+b0 ;
+b11111111 :
+b0 9
+b10 8
+b0 7
+b1 6
+b0 5
+14
+b11 3
+b0 2
+b11111111 1
+b0 0
+b10 /
+b0 .
+b1 -
+b0 ,
+0+
+x)
+bx (
+bx '
+bx &
+bx %
+bx $
+bx #
+bx "
+bx !
+$end
+#5
+bx1 X
+b0 Y
+b1000000000 [
+b0 c
+b0 b
+b0 f
+b11111111111000000000 e
+bx1 v
+b0 w
+b10000000000 y
+b0 #"
+b0 ""
+b0 &"
+b11000000000 %"
+1+
+#10
+0+
+#15
+b0 !"
+b11000000000 $"
+b0 x
+b10000000000 z
+bx11 v
+b0 a
+b11111111111000000000 d
+b0 Z
+b1000000000 \
+bx11 X
+1+
+#20
+0+
+#25
+1'"
+1P
+b0 R
+b0 F"
+b10 Q
+b10 G"
+b0 T
+b0 ("
+b0 S
+b0 )"
+1E"
+1n
+b0 p
+b0 H"
+b111111111 o
+b111111111 I"
+b0 r
+b0 *"
+b101 q
+b101 +"
+bx111 X
+b0 _
+b10000000000 `
+b0 ]
+b0 ^
+bx111 v
+b0 }
+b11111111111000000000 ~
+b0 {
+b101000000000 |
+1+
+#30
+0+
+#35
+b0 U"
+b10000000000 W"
+b0 _"
+b1000000000 ^"
+b0 b"
+b0 a"
+bx1 T"
+b0 7"
+b0 9"
+b0 A"
+b0 @"
+b0 D"
+b101000000000 C"
+bx1 6"
+bx1111 v
+bx1111 X
+1+
+#40
+0+
+#45
+b11111 X
+b11111 v
+bx11 6"
+b0 ?"
+b101000000000 B"
+b0 8"
+b0 :"
+bx11 T"
+b1000000000 ]"
+b0 `"
+b0 V"
+b10000000000 X"
+1+
+#50
+0+
+#55
+b1111111111 "
+b1111111111 C
+b1111111111 N"
+b10 !
+b10 D
+b10 M"
+b1 &
+b1 ?
+b1 P"
+b10 %
+b10 @
+b10 O"
+1)
+1L"
+b0 $
+b0 A
+b0 0"
+b1111111011 #
+b1111111011 B
+b1111111011 /"
+b0 (
+b0 =
+b0 2"
+b101 '
+b101 >
+b101 1"
+1."
+b111111111111000000000 ["
+b10000000000 \"
+b1000000000 Y"
+b10000000000 Z"
+bx111 T"
+b0 ="
+b111111111011000000000 >"
+b0 ;"
+b101000000000 <"
+bx111 6"
+1+
+#60
+0+
+#65
+bx1111 6"
+bx1111 T"
+1+
+#70
+0+
+#75
+b11111 T"
+b11111 6"
+1+
+#80
+0+
+#85
+1+
+#90
+0+
+#95
+1+
+#100
+0+

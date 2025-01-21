@@ -1,0 +1,45 @@
+You are a Verilog expert, and I need your help to write a Verilog code for a Register File module. Below are the detailed requirements:
+
+Module Name: RegisterFile
+
+Input Ports:
+- clk: Clock signal.
+- ra0: Address of the first read port.
+- ra1: Address of the second read port.
+- wd: Data to be written to the register file.
+- wa: Address of the write port.
+- wen: Write enable signal.
+
+Output Ports:
+- rd0: Data read from the first read port (combinational logic).
+- rd1: Data read from the second read port (combinational logic).
+- a0zero: Signal indicating if the register at address 10 is zero (combinational logic).
+
+Function Description:
+This module implements a register file with two read ports and one write port. The register file has a parameterized address width and data width. The module reads data from the specified addresses and writes data to the specified address when the write enable signal is asserted. Additionally, it outputs a signal indicating if the register at address 10 is zero.
+
+The module should have the following features:
+
+1. **Parameterized Address and Data Width**:
+   - The address width (`ADDR_WIDTH`) and data width (`DATA_WIDTH`) should be parameterized to allow flexibility in the size of the register file.
+   - You can set the default ADDR_WIDTH = 5 and DATA_WIDTH = 32.
+
+2. **Register Array**:
+   - The register file should be implemented as an array of registers with a size of `2**ADDR_WIDTH` and each register having a width of `DATA_WIDTH`.
+
+3. **Read Ports**:
+   - The module should have two read ports (`ra0` and `ra1`) that allow reading data from the register file. The data read from these ports should be available on the output ports (`rd0` and `rd1`). 
+   - These read operations should be implemented as combinational logic.
+
+4. **Write Port**:
+   - The module should have one write port (`wa`) that allows writing data to the register file. The data to be written should be provided on the input port (`wd`), and the write operation should be enabled by the write enable signal (`wen`).
+
+5. **Zero Register**:
+   - The module should output a signal (`a0zero`) indicating if the register at address 10 is zero. This signal should be asserted if all bits of the register at address 10 are zero. 
+   - This check should be implemented as combinational logic.
+   - This module should use "~|" to finish the judgement.
+
+6. **Clocked Write Operation**:
+   - The write operation should be clocked, meaning that data should be written to the register file on the rising edge of the clock signal (`clk`). The write operation should only occur if the write enable signal (`wen`) is asserted and the write address (`wa`) is not zero.
+
+Please write a functionally equivalent `RegisterFile` module based on the requirements above.

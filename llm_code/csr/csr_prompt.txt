@@ -1,0 +1,118 @@
+You are a Verilog expert, and I need your help to write a Verilog code for a Control and Status Register (CSR) module. Below are the detailed requirements:
+
+Module Name: CSR
+Input Ports:
+- clk: Clock signal.
+- reset: Reset signal.
+- csr_add: 12-bit input representing the CSR address.
+- csr_wdata: 32-bit input representing the data to be written to the CSR.
+- csr_write: 1-bit input representing the write enable signal.
+- csr_read: 1-bit input representing the read enable signal.
+- ecall: 1-bit input representing the ecall signal.
+- mret: 1-bit input representing the mret signal.
+- epc: 32-bit input representing the exception program counter.
+- csr_mask: 32-bit input representing the CSR mask.
+
+Output Ports:
+- entry: 32-bit output representing the entry address.
+- csr_rdata: 32-bit output representing the data read from the CSR.
+
+Function Description:
+This module implements a Control and Status Register (CSR) unit. The CSR unit handles various control and status registers, including `mtvec`, `mstatus`, `mepc`, and `mcause`. The module supports reading and writing to these registers, handling exceptions, and managing the CSR mask.
+
+- `mtvec` (Machine Trap-Vector Base-Address Register): This register holds the base address of the trap vector. The upper 30 bits (`mtvec_BASE`) hold the base address, and the lower 2 bits (`mtvec_MODE`) hold the mode.
+- `mstatus` (Machine Status Register): This register holds the status of the machine. It is initialized to `0x00001800` during reset.
+- `mepc` (Machine Exception Program Counter): This register holds the address of the instruction that caused the exception. It is updated during an `ecall` and can be written to using the CSR write mechanism.
+- `mcause` (Machine Cause Register): This register holds the cause of the exception. The highest bit (`mcause_INTR`) indicates whether the cause is an interrupt, and the remaining bits (`mcause_ECODE`) hold the exception code.
+
+The module supports the following operations:
+- **Reset**: During reset, all registers are initialized to their default values.
+- **Exception Handling**: During an `ecall`, the `mepc` register is updated with the current `epc`, and the `mcause` register is updated with the exception code.
+- **CSR Read/Write**: The module supports reading from and writing to the CSRs using the `csr_read` and `csr_write` signals. The `csr_mask` is used to selectively update bits in the CSRs during a write operation.
+
+Please note that you don't need to use case statements,just use if statements.
+And you can use && when you need to judge multiple condition
+When you wirte 'Exception handling and CSR operations'section , you just consider csr_add = MEPC or MTVEC.
+When you write the last section, you need to note that there are three factors to trigger the always statement:csr_read or csr_add or mret.
+
+Below is an example code. Please write a functionally equivalent CSR module based on the requirements above:
+
+module CSR(
+    input wire clk,
+    input wire reset,
+    input wire [11:0] csr_add,
+    input wire [31:0] csr_wdata,  // 写入CSR的数据
+    input wire csr_write,         // 写使能信号
+    input wire csr_read,          // 读使能信号
+    input wire ecall,
+    input wire mret,
+    input wire [31:0] epc,
+    input wire [31:0] csr_mask,
+    output [31:0] entry, // 改成wire
+    output reg [31:0] csr_rdata  // 从CSR读出的数据
+);
+`define MEPC    12'h341
+`define MSTATUS 12'h300
+`define MTVEC   12'h305
+`define MCAUSE  12'h342
+
+//mtvec 31-2为base 1-0为mode,用于设置中断模式
+//mstatus 为difftest设置为1800
+//mepc 在ecall时设置为此时的pc，在需要csr写入时完成按mask的写入
+//mcause 最高位用来判断是中断还是异常，剩下位表示具体类型
+
+reg [31:2] mtvec_BASE;
+reg [1:0]  mtvec_MODE;
+reg [31:0] mstatus;
+reg [31:0] mepc;
+reg        mcause_INTR;
+reg [30:0] mcause_ECODE;
+
+wire [31:0] mtvecout;  // 改成wire
+wire [31:0] mcauseout; // 改成wire
+
+wire [30:0] ecode;
+assign ecode = ecall? 11:0;
+// 异常处理逻辑
+always @(posedge clk) begin
+    if (reset) begin
+        // 复位时初始化寄存器
+        mepc <= 0;
+        mcause_ECODE <= 0;
+        mcause_INTR <= 0;
+        mtvec_BASE <= 0;
+        mtvec_MODE <= 0;
+        mstatus <= 32'h00001800;
+    end 
+    else begin
+        if (ecall) begin
+            mepc <= epc; 
+            mcause_INTR <= 1'b0;
+            mcause_ECODE <= ecode;
+        end
+        else begin 
+            if(csr_write && csr_add== `MEPC)
+                mepc <= (csr_mask & csr_wdata) | (~csr_mask & mepc);//更新mask的，保存非mask的原始值
+            if(csr_write && csr_add== `MTVEC)
+                mtvec_BASE <= (csr_mask[31:2] & csr_wdata[31:2]) | (~csr_mask[31:2] & mtvec_BASE);
+        end
+    end
+end
+
+assign entry = {mtvec_BASE,2'b0};
+assign mtvecout = {mtvec_BASE,mtvec_MODE};
+assign mcauseout = {mcause_INTR,mcause_ECODE};
+
+always @(csr_read or csr_add or mret) begin
+    if(csr_read && csr_add== `MSTATUS)
+        csr_rdata=mstatus;
+    if((csr_read && csr_add==`MEPC) || mret)
+        csr_rdata=mepc;
+    if(csr_read && csr_add==`MTVEC)
+        csr_rdata=mtvecout;
+    if(csr_read && csr_add==`MCAUSE)
+        csr_rdata=mcauseout;
+    //$display("csr_rdata=0x%h\n",csr_rdata);
+end
+
+endmodule

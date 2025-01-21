@@ -1,0 +1,421 @@
+
+You are a Verilog expert, and I need your help to write a Verilog code for an Instruction Decode Unit (IDU) module. Below are the detailed requirements:
+
+Module Name: idu
+Input Ports:
+- inst: 32-bit instruction input.
+Output Ports:
+- ExtOP: 3-bit output for extension operation.
+- ALUctr: 4-bit output for ALU control signals.
+- Wen: 1-bit output for write enable.
+- ALUAsrc: 1-bit output for ALU A source selection.
+- ALUBsrc: 1-bit output for ALU B source selection.
+- wdctr: 3-bit output for write data control.
+- pcctr: 4-bit output for program counter control.
+- datawen: 1-bit output for data write enable.
+- valid: 1-bit output for instruction validity.
+- datamask: 8-bit output for data mask.
+
+Function Description:
+This module decodes a 32-bit instruction and generates control signals for various operations. 
+The operations include setting ALU control signals, write enable signals, source selection for ALU inputs, write data control, program counter control, data write enable, instruction validity, and data mask.
+Please note that there are 8 types of op:7'b0110111;7'b0000011;7'b0100011;7'b0110011;7'b1100011;7'b1100111；7'b1101111
+You need to note that MuxKeyWithDefault is a pre-defined module that can be used to implement a multiplexer with a default value. You can use the pre-defined module MuxKeyWithDefault in your solution instead of using another case statement.
+When you use MuxKeyWithDefault , please note the following:
+1. The first parameter of MuxKeyWithDefault is the output width.
+2. The second parameter is the width of the selection signal.
+3. The third parameter is the default value.
+4. The fourth parameter is the width of the input signals.
+5. When you are instantiating,please note that the four ports are .out .key .default_out and lut,but i need you don't use .out（out） writting type, just directly use the name of the port such as (out, key, default_out, lut)
+In this module, for masksel the parameter to send in should be MuxKeyWithDefault #(5,3,8) masksel and for alusel , it should be MuxKeyWithDefault #(3,3,4) andsel
+
+Please note that the relationship between func3 and inst: [14:12]func3 = {inst[14:12]}.
+Please note that the relationship between func7 and inst: [31:12]func7 = {inst[31:12]}.
+
+Below is an example code. Please write a functionally equivalent idu module based on the requirements above:
+module idu(
+	input      [31:0] inst,
+	output reg [2:0]ExtOP,
+	output reg [3:0]ALUctr,//考虑独热
+	output reg Wen,
+	output reg [0:0]ALUAsrc,
+	output reg [0:0]ALUBsrc,
+	output reg [2:0]wdctr,
+	output reg [3:0]pcctr,
+	output reg datawen,
+	output reg valid,
+	output reg [7:0] datamask
+);
+	wire [6:0]op={inst[6:0]};
+	wire [14:12]func3={inst[14:12]};
+	wire [31:12]func7={inst[31:12]};
+	wire [7:0] mask;
+	MuxKeyWithDefault #(5,3,8) masksel (mask,func3,8'b00000000,{
+		3'b010,8'b00001111, //sw lw
+		3'b001,8'b00000011, //sh lh
+		3'b000,8'b00000001, //sb lb
+		3'b100,8'b00000001, //lbu
+		3'b101,8'b00000011  //lhu
+		});
+	wire [3:0] alusel;
+	MuxKeyWithDefault #(3,3,4) andsel (alusel,func3,4'b0010,{
+		3'b111,4'b0010, //and andi
+		3'b110,4'b0011, //or ori
+		3'b100,4'b0100 //xor xori
+		});
+	always @(*) begin
+		case(op)
+			7'b0110111,7'b0010111:begin //U-type
+				ExtOP=3'b001;
+				Wen=1;
+				ALUAsrc=0;
+				ALUBsrc=0;
+				ALUctr=4'b0000;
+				wdctr={1'b0,op[6:5]};
+				pcctr=4'b0000;
+				datawen=0;
+				valid=0;
+				datamask=8'b00000000;
+				
+			end
+			7'b0010011:begin //I-type
+				case(func3)
+					3'b000:begin //addi
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=0;
+						ALUctr=4'b0000;
+						wdctr=3'b000;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					3'b101:begin //srli，srai
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=0;
+						ALUctr={3'b011,func7[30]};
+						wdctr=3'b000;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000;
+					end
+					3'b001:begin //slli
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=0;
+						ALUctr=4'b0101;
+						wdctr=3'b000;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000;
+					end
+					3'b011:begin //sltiu 伪指令 seqz
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=0;
+						ALUctr=4'b0000;
+						wdctr=3'b100;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000;
+					end
+					3'b111,3'b110,3'b100:begin //andi ori xori
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=0;
+						ALUctr=alusel;
+						wdctr=3'b000;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000;
+					end
+					default:begin //addi
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=0;
+						ALUctr=4'b0000;
+						wdctr=3'b000;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+				endcase
+			end
+
+			7'b0000011:begin //I-type l
+				case(func3)
+					3'b000,3'b001,3'b010:begin //lb lh lw
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=0;
+						ALUctr=4'b0000;
+						wdctr=3'b011;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=1;
+						datamask=mask; end
+					3'b100:begin //lbu
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=0;
+						ALUctr=4'b0000;
+						wdctr=3'b011;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=1;
+						datamask=mask; end
+					3'b101:begin //lhu
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=0;
+						ALUctr=4'b0000;
+						wdctr=3'b011;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=1;
+						datamask=mask;end
+					default:begin
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=0;
+						ALUctr=4'b0000;
+						wdctr=3'b011;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=1;
+						datamask=mask; end
+				endcase
+			end
+			7'b0100011:begin //S-type
+				ExtOP=3'b010;
+				Wen=0;
+				ALUAsrc=1;
+				ALUBsrc=0;
+				ALUctr=4'b0000;
+				wdctr=3'b000;
+				pcctr=4'b0000;
+				datawen=1;
+				valid=1;
+				datamask=mask;
+
+			end
+			7'b0110011:begin //R-type
+				case(func3)
+					3'b000:begin //add or sub
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=1;
+						ALUctr={3'b000,func7[30]};
+						wdctr=3'b000;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					3'b010:begin //slt
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=0;
+						ALUBsrc=0;
+						ALUctr=0010;
+						wdctr=3'b110;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					3'b001:begin //sll
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=1;
+						ALUctr=4'b0101;
+						wdctr=3'b000;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					3'b101:begin //srl sra
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=1;
+						ALUctr={func7[30],3'b110};
+						wdctr=3'b000;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					3'b011:begin //sltu
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=0;
+						ALUBsrc=0;
+						ALUctr=0010;
+						wdctr=3'b101;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					3'b111,3'b110,3'b100:begin //and or xor
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=1;
+						ALUctr=alusel;
+						wdctr=3'b000;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					default:begin //add
+						ExtOP=3'b000;
+						Wen=1;
+						ALUAsrc=1;
+						ALUBsrc=1;
+						ALUctr=4'b0000;
+						wdctr=3'b000;
+						pcctr=4'b0000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+				endcase
+			end
+			7'b1100011:begin //B-type
+				case(func3)
+					3'b000:begin //beq
+						ExtOP=3'b011;
+						Wen=0;
+						ALUAsrc=1;
+						ALUBsrc=1;
+						ALUctr=4'b0000;
+						wdctr=3'b000;
+						pcctr=4'b0011;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					3'b001:begin //bne
+						ExtOP=3'b011;
+						Wen=0;
+						ALUAsrc=1;
+						ALUBsrc=1;
+						ALUctr=4'b0000;
+						wdctr=3'b000;
+						pcctr=4'b0100;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					3'b100:begin //blt
+						ExtOP=3'b011;
+						Wen=0;
+						ALUAsrc=1;
+						ALUBsrc=1;
+						ALUctr=4'b0000;
+						wdctr=3'b000;
+						pcctr=4'b0110;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					3'b101:begin //bge
+						ExtOP=3'b011;
+						Wen=0;
+						ALUAsrc=1;
+						ALUBsrc=1;
+						ALUctr=4'b0000;
+						wdctr=3'b000;
+						pcctr=4'b0111;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					3'b110:begin //bltu
+						ExtOP=3'b011;
+						Wen=0;
+						ALUAsrc=1;
+						ALUBsrc=1;
+						ALUctr=4'b0000;
+						wdctr=3'b000;
+						pcctr=4'b0101;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					3'b111:begin //bgeu
+						ExtOP=3'b011;
+						Wen=0;
+						ALUAsrc=1;
+						ALUBsrc=1;
+						ALUctr=4'b0000;
+						wdctr=3'b000;
+						pcctr=4'b1000;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+					default:begin //beq
+						ExtOP=3'b011;
+						Wen=0;
+						ALUAsrc=1;
+						ALUBsrc=1;
+						ALUctr=4'b0000;
+						wdctr=3'b000;
+						pcctr=4'b0011;
+						datawen=0;
+						valid=0;
+						datamask=8'b00000000; end
+				endcase
+			end
+			7'b1100111:begin //jalr
+				ExtOP=3'b000;
+				Wen=1;
+				ALUAsrc=1;
+				ALUBsrc=0;
+				ALUctr=4'b0000;
+				wdctr=3'b010;
+				pcctr=4'b0010;
+				datawen=0;
+				valid=0;
+				datamask=8'b00000000;
+			end
+			7'b1101111:begin //jal
+
+				ExtOP=3'b100;
+				Wen=1;
+				ALUAsrc=0;
+				ALUBsrc=0;
+				ALUctr=4'b0000;
+				wdctr=3'b010;
+				pcctr=4'b0001;
+				datawen=0;
+				valid=0;
+				datamask=8'b00000000;
+			end
+			default:begin
+				ExtOP=3'b000;
+				Wen=0;
+				ALUAsrc=1;
+				ALUBsrc=0;
+				ALUctr=4'b0000;
+				wdctr=3'b010;
+				pcctr=4'b0000;
+				datawen=0;
+				valid=0;
+				datamask=8'b00000000;
+			end
+		endcase
+	end
+	//wire [31:20] q={func7[31:20]};
+endmodule
+
+Please write a functionally equivalent idu module based on the requirements above.

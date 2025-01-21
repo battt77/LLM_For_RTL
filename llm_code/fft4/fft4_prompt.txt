@@ -1,0 +1,220 @@
+
+You are a Verilog expert, and I need your help to write a Verilog code for an fft4 module. Below are the detailed requirements:
+
+Module Name: TopModule
+Parameters:
+DATA_WIDTH: Data width, default is 8.
+Input Ports:
+clk: Clock signal.
+rst_n: Reset signal, active low.
+en: Enable signal.
+in0_real, in0_imag, in1_real, in1_imag, in2_real, in2_imag, in3_real, in3_imag: Real and imaginary parts of the 4-point FFT input.
+Output Ports:
+out0_real, out0_imag, out1_real, out1_imag, out2_real, out2_imag, out3_real, out3_imag: Real and imaginary parts of the 4-point FFT output.
+yout_valid: Data valid signal.
+
+Function Description:
+This module implements a 4-point FFT, which requires two stages of butterfly operations.
+The rotation factor parameters are scaled by 512.
+The module needs to perform bit-reversal and two stages of butterfly operations.
+Use the SubModule module for butterfly operations.
+
+Below is an example code. Please write a functionally equivalent fft4 module based on the requirements above:
+
+`include "subref.v" 
+module TopModule #(
+    parameter DATA_WIDTH = 8    
+)
+(
+    input wire clk,
+    input wire rst_n,
+    input wire en,
+
+    // 4-point FFT, four input real and imaginary parts
+    input  wire signed [DATA_WIDTH-1:0] in0_real,
+    input  wire signed [DATA_WIDTH-1:0] in0_imag,
+    input  wire signed [DATA_WIDTH-1:0] in1_real,
+    input  wire signed [DATA_WIDTH-1:0] in1_imag,
+    input  wire signed [DATA_WIDTH-1:0] in2_real,
+    input  wire signed [DATA_WIDTH-1:0] in2_imag,
+    input  wire signed [DATA_WIDTH-1:0] in3_real,
+    input  wire signed [DATA_WIDTH-1:0] in3_imag,
+
+    // 4-point FFT requires two stages of butterfly operations, thus adding two extra bits for width
+    output wire signed [DATA_WIDTH+1:0] out0_real,
+    output wire signed [DATA_WIDTH+1:0] out0_imag,
+    output wire signed [DATA_WIDTH+1:0] out1_real,
+    output wire signed [DATA_WIDTH+1:0] out1_imag,
+    output wire signed [DATA_WIDTH+1:0] out2_real,
+    output wire signed [DATA_WIDTH+1:0] out2_imag,
+    output wire signed [DATA_WIDTH+1:0] out3_real,
+    output wire signed [DATA_WIDTH+1:0] out3_imag,
+
+    output wire yout_valid
+);
+    // 1 << 9 = 512, so the rotation factor parameters below are also scaled by 512
+    localparam EXPAND = 9;
+    // 4-point FFT
+    localparam POINTS = 4; 
+
+    // Rotation factors 
+    reg signed [EXPAND+1:0] RO_ARRAY[POINTS-1:0][1:0];
+    // Initialize rotation factors
+    initial begin
+        RO_ARRAY[0][0] <= 512;
+        RO_ARRAY[0][1] <= 0;
+        RO_ARRAY[1][0] <= 0;
+        RO_ARRAY[1][1] <= -512;
+        RO_ARRAY[2][0] <= -512;
+        RO_ARRAY[2][1] <= 0;
+        RO_ARRAY[3][0] <= 0;
+        RO_ARRAY[3][1] <= 512;
+    end
+
+    // 4-point FFT requires three layers of connections: bit-reversal layer, first butterfly operation layer, second butterfly operation layer
+    // [DATA_WIDTH+EXPAND-1:0] indicates the width of each data
+    // [2:0] indicates three layers in total
+    // [3:0] indicates four data points in each layer, i.e., four-point data
+
+    // For the original data layer and the first computation layer
+    wire signed [DATA_WIDTH-1:0] in_real[3:0];
+    wire signed [DATA_WIDTH-1:0] in_imag[3:0];
+    // For the first computation layer and the second computation layer
+    wire signed [DATA_WIDTH+0:0] in_real_step1[3:0];
+    wire signed [DATA_WIDTH+0:0] in_imag_step1[3:0];
+    // For the second computation layer and the output layer
+    wire signed [DATA_WIDTH+1:0] in_real_step2[3:0];
+    wire signed [DATA_WIDTH+1:0] in_imag_step2[3:0];
+    // For connecting the en pins of each module
+    wire en_connect [3:0][1:0];
+
+    // Connect the en pins of the first layer butterfly operation modules
+    assign en_connect[0][0] = en;
+    assign en_connect[1][0] = en;
+
+    // Step 1: Bit-reversal
+    assign in_real[0] = in0_real;
+    assign in_imag[0] = in0_imag;
+    assign in_real[1] = in2_real;
+    assign in_imag[1] = in2_imag;
+    assign in_real[2] = in1_real;
+    assign in_imag[2] = in1_imag;
+    assign in_real[3] = in3_real;
+    assign in_imag[3] = in3_imag;
+
+    // Step 2: Connect the bit-reversed data to the first layer butterfly operation
+    SubModule #(
+        .DATA_WIDTH(DATA_WIDTH), .EXPAND(EXPAND)
+    )  butterfly_unit_0_0 (
+            // Control signals
+            .clk(clk),
+            .rst_n(rst_n),
+            .en(en_connect[0][0]),
+            // Inputs 
+            .in1_real(in_real[0]),
+            .in1_imag(in_imag[0]),
+            .in2_real(in_real[1]),
+            .in2_imag(in_imag[1]),
+            // Rotation factors
+            .ro_real(RO_ARRAY[0][0]),
+            .ro_imag(RO_ARRAY[0][1]),
+            // Outputs
+            .out1_real(in_real_step1[0]),
+            .out1_imag(in_imag_step1[0]),
+            .out2_real(in_real_step1[1]),
+            .out2_imag(in_imag_step1[1]),
+            // Output valid signal
+            .valid(en_connect[0][1])
+    );
+
+    SubModule #(
+        .DATA_WIDTH(DATA_WIDTH), .EXPAND(EXPAND)
+    )  butterfly_unit_0_1 (
+            // Control signals
+            .clk(clk),
+            .rst_n(rst_n),
+            .en(en_connect[1][0]),
+            // Inputs 
+            .in1_real(in_real[2]),
+            .in1_imag(in_imag[2]),
+            .in2_real(in_real[3]),
+            .in2_imag(in_imag[3]),
+            // Rotation factors
+            .ro_real(RO_ARRAY[0][0]),
+            .ro_imag(RO_ARRAY[0][1]),
+            // Outputs
+            .out1_real(in_real_step1[2]),
+            .out1_imag(in_imag_step1[2]),
+            .out2_real(in_real_step1[3]),
+            .out2_imag(in_imag_step1[3]),
+            // Output valid signal
+            .valid(en_connect[1][1])
+    );
+    
+    // Connect the valid signals of the first layer butterfly operation modules to the en pins of the second layer butterfly operation modules
+    assign en_connect[2][0] = en_connect[0][1];
+    assign en_connect[3][0] = en_connect[1][1];
+
+    // Second layer butterfly operation
+    SubModule #(
+        .DATA_WIDTH(DATA_WIDTH+1), .EXPAND(EXPAND)
+    )  butterfly_unit_1_0 (
+            // Control signals
+            .clk(clk),
+            .rst_n(rst_n),
+            .en(en_connect[2][0]),
+            // Inputs 
+            .in1_real(in_real_step1[0]),
+            .in1_imag(in_imag_step1[0]),
+            .in2_real(in_real_step1[2]),
+            .in2_imag(in_imag_step1[2]),
+            // Rotation factors
+            .ro_real(RO_ARRAY[0][0]),
+            .ro_imag(RO_ARRAY[0][1]),
+            // Outputs
+            .out1_real(in_real_step2[0]),
+            .out1_imag(in_imag_step2[0]),
+            .out2_real(in_real_step2[2]),
+            .out2_imag(in_imag_step2[2]),
+            // Output valid signal
+            .valid(en_connect[2][1])
+    );
+
+    SubModule #(
+        .DATA_WIDTH(DATA_WIDTH+1), .EXPAND(EXPAND)
+    )  butterfly_unit_1_1 (
+            // Control signals
+            .clk(clk),
+            .rst_n(rst_n),
+            .en(en_connect[3][0]),
+            // Inputs 
+            .in1_real(in_real_step1[1]),
+            .in1_imag(in_imag_step1[1]),
+            .in2_real(in_real_step1[3]),
+            .in2_imag(in_imag_step1[3]),
+            // Rotation factors
+            .ro_real(RO_ARRAY[1][0]),
+            .ro_imag(RO_ARRAY[1][1]),
+            // Outputs
+            .out1_real(in_real_step2[1]),
+            .out1_imag(in_imag_step2[1]),
+            .out2_real(in_real_step2[3]),
+            .out2_imag(in_imag_step2[3]),
+            // Output valid signal
+            .valid(en_connect[3][1])
+    );
+
+    assign yout_valid = en_connect[3][1];
+
+    assign out0_real = in_real_step2[0];
+    assign out0_imag = in_imag_step2[0];
+    assign out1_real = in_real_step2[1];
+    assign out1_imag = in_imag_step2[1];
+    assign out2_real = in_real_step2[2];
+    assign out2_imag = in_imag_step2[2];
+    assign out3_real = in_real_step2[3];
+    assign out3_imag = in_imag_step2[3];
+
+endmodule
+
+Please write a functionally equivalent fft4 module based on the requirements above.

@@ -1,0 +1,46 @@
+You are a Verilog expert, and I need your help to write a Verilog code for a Register File module. Below are the detailed requirements:
+
+Module Name: RegisterFile
+Parameters:
+- ADDR_WIDTH: Width of the address bus (default is 5).
+- DATA_WIDTH: Width of the data bus (default is 32).
+
+Input Ports:
+- clk: Clock signal.
+- ra0: Address for the first read port.
+- ra1: Address for the second read port.
+- wd: Data to be written to the register file.
+- wa: Address for the write port.
+- wen: Write enable signal.
+
+Output Ports:
+- rd0: Data read from the first read port.
+- rd1: Data read from the second read port.
+- a0zero: Signal indicating if the register at address 10 is zero.
+
+Function Description:
+This module implements a register file with two read ports and one write port. The register file has a parameterized address width and data width. The module reads data from the specified addresses and writes data to the specified address when the write enable signal is asserted. Additionally, it outputs a signal indicating if the register at address 10 is zero.
+
+Below is an example code. Please write a functionally equivalent ALU module based on the requirements above:
+module RegisterFile #(ADDR_WIDTH = 5, DATA_WIDTH = 32) (
+  input clk,
+	input [ADDR_WIDTH-1:0] ra0, ra1,
+	output [DATA_WIDTH-1:0] rd0, rd1,
+  input [DATA_WIDTH-1:0] wd,
+  input [ADDR_WIDTH-1:0] wa,
+  input wen,
+  output [0:0] a0zero
+);
+  reg [DATA_WIDTH-1:0] rf [2**ADDR_WIDTH-1:0];
+  // import "DPI-C" function void get_gpr_ptr(input logic [63:0] a []);
+  // initial get_gpr_ptr(rf); 
+	assign rd0=rf[ra0];
+	assign rd1=rf[ra1];
+  assign a0zero = ~|rf[10]; 
+  always @(posedge clk) begin
+    if (wen&&wa!=0) rf[wa] <= wd;
+    //$display("write to reg:wa=%d,data=%h\n",wa,wd);
+  end
+endmodule
+
+Please write a functionally equivalent RegisterFile module based on the requirements above.

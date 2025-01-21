@@ -1,0 +1,160 @@
+You are a Verilog expert, and I need your help to write a Verilog code for an Instruction Decode Unit (IDU) module. Here is a more detailed prompt that includes MuxKeyWithDefault usage, CSR logic, and sub-decoding details:
+Module Name: idu
+--------------------------------------------------------------------------------
+1) Input Ports
+--------------------------------------------------------------------------------
+(1) op (7 bits): Major opcode (e.g., load, store, branch, jump, CSR).  
+(2) func3 (3 bits): Subcategory for ALU, load/store size, branch condition, etc.  
+(3) func7 (20 bits:you must define it as [31:12] instead of [19:0]): Used with R-type or special instructions (e.g., add vs. sub).  
+(4) inst (32 bits): Full instruction word to detect ecall, mret, or other CSR ops.
+--------------------------------------------------------------------------------
+2) Output Ports
+--------------------------------------------------------------------------------
+(1) ExtOP (3 bits): Selects type of immediate extension (I, U, S, B, J).  
+(2) ALUctr (4 bits): Chooses ALU operation (e.g., add=0000, sub=1000, or from MuxKey).  
+(3) Wen (1 bit): Register file write enable (1 for write-back).  
+(4) ALUAsrc (1 bit), ALUBsrc (1 bit): Select which inputs feed the ALU (immediate vs. registers).  
+(5) wdctr (3 bits): Controls what data is written back to the register file (ALU result, memory load, PC+4, CSR).  
+(6) pcctr (4 bits): Determines how PC updates (normal increment, branch, jump, ecall, etc.).  
+(7) datawen (1 bit): Data memory write enable (1 for store).  
+(8) valid (1 bit): Indicates if this instruction is valid and handled.  
+(9) datamask (8 bits): Byte/halfword/word mask for load/store (determined by func3).  
+(10) csr_rs (1 bit): Distinguishes csrrw from csrrs.  
+(11) ecall (1 bit): Indicates an ecall instruction.  
+(12) mret (1 bit): Indicates an mret instruction.  
+(13) csr_read (1 bit), csr_write (1 bit): CSR access signals.
+--------------------------------------------------------------------------------
+3) MuxKeyWithDefault Usage
+--------------------------------------------------------------------------------
+When instantiating the `MuxKeyWithDefault` module, use the following format:
+- The four ports are `out`, `key`, `default_out`, and `lut`.
+- Do not use the `.out(out)` writing type; instead, directly use the name of the port.
+• Mask:  
+  - Define a reg [7:0] mask.  
+  - Use `MuxKeyWithDefault #(<keynum>, <keywidth>, <outwidth>) masksel (mask, func3, 8'b00000000, {
+      3'b010, 8'b00001111, // sw, lw
+      3'b001, 8'b00000011, // sh, lh
+      3'b000, 8'b00000001, // sb, lb
+      3'b100, 8'b00000001, // lbu
+      3'b101, 8'b00000011  // lhu
+    })` to map func3 to the correct byte-enable.  
+  - Examples: lb/lbu => 8'b00000001, lh/lhu => 8'b00000011, lw => 8'b00001111, etc.
+
+• ALUctr for logic ops (andi, ori, xori, etc.):  
+  - Define a reg [3:0] alusel.  
+  - Use `MuxKeyWithDefault #(3,3,4) andsel (alusel, func3, 4'b0010, {
+      3'b111, 4'b0010, // and, andi
+      3'b110, 4'b0011, // or, ori
+      3'b100, 4'b0100  // xor, xori
+    })` to select ALUctr based on func3 (e.g., 3'b111 => AND, 3'b110 => OR, 3'b100 => XOR).  
+  - Then in your always @(*) block, assign `ALUctr = alusel` unless overridden by other conditions (like sub, shift, etc.).
+
+--------------------------------------------------------------------------------
+4) CSR Logic
+--------------------------------------------------------------------------------
+• You can define a reg csr_sel to capture ecall/mret/csrrw/csrrs. And Use 'always @(csr_sel) to start the CSR Logic:
+  More detailed，according to the value of csr_sel to define signals like csr_rs,ecall,mret,csr_read,csr_write.
+  - 4'b0000 or other => default : csr_rs=0;ecall=0;mret=0;csr_read=0;csr_write=0;
+  - 4'b0001 => ecall :csr_rs=0;ecall=1;mret=0;csr_read=0;csr_write=0;  
+  - 4'b0010 => mret  :csr_rs=0;ecall=0;mret=1;csr_read=0;csr_write=0;
+  - 4'b0011 => csrrw :csr_rs=0;ecall=0;mret=0;csr_read=1;csr_write=1;
+  - 4'b0100 => csrrs :csr_rs=1;ecall=0;mret=0;csr_read=1;csr_write=1;
+
+--------------------------------------------------------------------------------
+5) Sub-Decoding Using op/func3/func7
+--------------------------------------------------------------------------------
+Below is a more detailed case breakdown (in an always @(*) block):
+You can refer to the `op` and `func3` lookup table 
+There are 9 types of `op`s : 1110011 ,0110111 and 0010111,0010011,0000011,0100011,0110011,1100011,1100111,1101111 and the variable are ExtOP,Wen,ALUAsrc,ALUBsrc,ALUctr,wdctr,pcctr,datawen,valid,csr_sel,datamask
+1. `op = 7'b1110011` (System/CSR)
+
+| `func3` | `inst`                                   | `ExtOP` | `Wen` | `ALUAsrc` | `ALUBsrc` | `ALUctr`      | `wdctr` | `pcctr` | `datawen` | `valid` | `csr_sel` | `datamask` |
+|---------|------------------------------------------|---------|-------|-----------|-----------|---------------|---------|---------|-----------|---------|-----------|------------|
+| `3'b000`| `32'b00000000000000000000000001110011`   | `3'b000` | `0`   | `1`       | `0`       | `4'b0000`     | `3'b000`| `4'b1001`| `0`       | `0`     | `4'b0001` | `8'b00000000` |
+| `3'b000`| `32'b00110000001000000000000001110011`   | `3'b000` | `0`   | `1`       | `0`       | `4'b0000`     | `3'b000`| `4'b1010`| `0`       | `0`     | `4'b0010` | `8'b00000000` |
+| `3'b000`|  whatever inst                           | `3'b000` | `0`   | `1`       | `0`       | `4'b0000`     | `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b001`| -                                        | `3'b000` | `1`   | `1`       | `0`       | `4'b0000`     | `3'b111`| `4'b0000`| `0`       | `0`     | `4'b0011` | `8'b00000000` |
+| `3'b010`| -                                        | `3'b000` | `1`   | `1`       | `0`       | `4'b0000`     | `3'b111`| `4'b0000`| `0`       | `0`     | `4'b0100` | `8'b00000000` |
+| else    | -                                        | `3'b000` | `0`   | `1`       | `0`       | `4'b0000`     | `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+
+
+2. `op = 7'b0110111` 或 `7'b0010111` (U-type)
+
+| `op`         | `ExtOP` | `Wen` | `ALUAsrc` | `ALUBsrc` | `ALUctr`       | `wdctr`      | `pcctr` | `datawen` | `valid` | `csr_sel` | `datamask` |
+|--------------|---------|-------|-----------|-----------|----------------|--------------|---------|-----------|---------|-----------|------------|
+| `7'b0110111` | `3'b001`| `1`   | `0`       | `0`       | `4'b0000`      | `{1'b0, op[6:5]}` | `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `7'b0010111` | `3'b001`| `1`   | `0`       | `0`       | `4'b0000`      | `{1'b0, op[6:5]}` | `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+
+3. `op = 7'b0010011` (I-type)
+
+| `func3` | `ExtOP` | `Wen` | `ALUAsrc` | `ALUBsrc` | `ALUctr`            | `wdctr` | `pcctr` | `datawen` | `valid` | `csr_sel` | `datamask` |
+|---------|---------|-------|-----------|-----------|---------------------|---------|---------|-----------|---------|-----------|------------|
+| `3'b000`| `3'b000`| `1`   | `1`       | `0`       | `4'b0000`           | `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b101`| `3'b000`| `1`   | `1`       | `0`       | `{3'b011, func7[30]}`| `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b001`| `3'b000`| `1`   | `1`       | `0`       | `4'b0101`           | `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b011`| `3'b000`| `1`   | `1`       | `0`       | `4'b0000`           | `3'b100`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b111`| `3'b000`| `1`   | `1`       | `0`       | `alusel`            | `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b110`| `3'b000`| `1`   | `1`       | `0`       | `alusel`            | `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b100`| `3'b000`| `1`   | `1`       | `0`       | `alusel`            | `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+|  else   | `3'b000`| `1`   | `1`       | `0`       | `4'b0000`           | `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+
+4. `op = 7'b0000011` (Load - I-type)
+
+| `func3`              | `ExtOP` | `Wen` | `ALUAsrc` | `ALUBsrc` | `ALUctr` | `wdctr` | `pcctr` | `datawen` | `valid` | `csr_sel` | `datamask` |
+|----------------------|---------|-------|-----------|-----------|----------|---------|---------|-----------|---------|-----------|------------|
+| `3'b000`, `3'b001`, `3'b010` | `3'b000` | `1`   | `1`       | `0`       | `4'b0000`| `3'b011`| `4'b0000`| `0`       | `1`     | `4'b0000` | `mask`     |
+| `3'b100`             | `3'b000`| `1`   | `1`       | `0`       | `4'b0000`| `3'b011`| `4'b0000`| `0`       | `1`     | `4'b0000` | `mask`     |
+| `3'b101`             | `3'b000`| `1`   | `1`       | `0`       | `4'b0000`| `3'b011`| `4'b0000`| `0`       | `1`     | `4'b0000` | `mask`     |
+|  else                | `3'b000`| `1`   | `1`       | `0`       | `4'b0000`| `3'b011`| `4'b0000`| `0`       | `1`     | `4'b0000` | `mask`     |
+
+5. `op = 7'b0100011` (Store - S-type)
+
+| `op`        | `ExtOP` | `Wen` | `ALUAsrc` | `ALUBsrc` | `ALUctr` | `wdctr` | `pcctr` | `datawen` | `valid` | `csr_sel` | `datamask` |
+|-------------|---------|-------|-----------|-----------|----------|---------|---------|-----------|---------|-----------|------------|
+| `7'b0100011`| `3'b010`| `0`   | `1`       | `0`       | `4'b0000`| `3'b000`| `4'b0000`| `1`       | `1`     | `4'b0000` | `mask`     |
+
+6. `op = 7'b0110011` (R-type)
+
+| `func3` | `ExtOP` | `Wen` | `ALUAsrc` | `ALUBsrc` | `ALUctr`             | `wdctr` | `pcctr` | `datawen` | `valid` | `csr_sel` | `datamask` |
+|---------|---------|-------|-----------|-----------|----------------------|---------|---------|-----------|---------|-----------|------------|
+| `3'b000`| `3'b000`| `1`   | `1`       | `1`       | `{3'b000, func7[30]}`| `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b010`| `3'b000`| `1`   | `0`       | `0`       | `4'b0010`            | `3'b110`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b001`| `3'b000`| `1`   | `1`       | `1`       | `4'b0101`            | `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b101`| `3'b000`| `1`   | `1`       | `1`       | `{func7[30], 3'b110}`| `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b011`| `3'b000`| `1`   | `0`       | `0`       | `4'b0010`            | `3'b101`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b111`, `3'b110`, `3'b100` | `3'b000`| `1`   | `1`       | `1`       | `alusel`             | `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+|  else   | `3'b000`| `1`   | `1`       | `1`       | `4'b0000`            | `3'b000`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+
+7. `op = 7'b1100011` (Branch - B-type)
+
+| `func3` | `ExtOP` | `Wen` | `ALUAsrc` | `ALUBsrc` | `ALUctr` | `wdctr` | `pcctr` | `datawen` | `valid` | `csr_sel` | `datamask` |
+|---------|---------|-------|-----------|-----------|----------|---------|---------|-----------|---------|-----------|------------|
+| `3'b000`| `3'b011`| `0`   | `1`       | `1`       | `4'b0000`| `3'b000`| `4'b0011`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b001`| `3'b011`| `0`   | `1`       | `1`       | `4'b0000`| `3'b000`| `4'b0100`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b100`| `3'b011`| `0`   | `1`       | `1`       | `4'b0000`| `3'b000`| `4'b0110`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b101`| `3'b011`| `0`   | `1`       | `1`       | `4'b0000`| `3'b000`| `4'b0111`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b110`| `3'b011`| `0`   | `1`       | `1`       | `4'b0000`| `3'b000`| `4'b0101`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| `3'b111`| `3'b011`| `0`   | `1`       | `1`       | `4'b0000`| `3'b000`| `4'b1000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+| else    | `3'b011`| `0`   | `1`       | `1`       | `4'b0000`| `3'b000`| `4'b0011`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+
+8. `op = 7'b1100111` (JALR)
+
+| `op`        | `ExtOP` | `Wen` | `ALUAsrc` | `ALUBsrc` | `ALUctr` | `wdctr` | `pcctr` | `datawen` | `valid` | `csr_sel` | `datamask` |
+|-------------|---------|-------|-----------|-----------|----------|---------|---------|-----------|---------|-----------|------------|
+| `7'b1100111`| `3'b000`| `1`   | `1`       | `0`       | `4'b0000`| `3'b010`| `4'b0010`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+
+9. `op = 7'b1101111` (JAL)
+
+| `op`        | `ExtOP` | `Wen` | `ALUAsrc` | `ALUBsrc` | `ALUctr` | `wdctr` | `pcctr` | `datawen` | `valid` | `csr_sel` | `datamask` |
+|-------------|---------|-------|-----------|-----------|----------|---------|---------|-----------|---------|-----------|------------|
+| `7'b1101111`| `3'b100`| `1`   | `0`       | `0`       | `4'b0000`| `3'b010`| `4'b0001`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+
+10. default
+
+| `op`        | `ExtOP` | `Wen` | `ALUAsrc` | `ALUBsrc` | `ALUctr` | `wdctr` | `pcctr` | `datawen` | `valid` | `csr_sel` | `datamask` |
+|-------------|---------|-------|-----------|-----------|----------|---------|---------|-----------|---------|-----------|------------|
+| else        | `3'b000`| `0`   | `1`       | `0`       | `4'b0000`| `3'b010`| `4'b0000`| `0`       | `0`     | `4'b0000` | `8'b00000000` |
+
+Extra keypoints to notice:
+In CRS Logic Module, you should start with always @(csr_sel) .
+In Sub-Decoding Using op/func3/func7 Module, you should not do default assignments first, you can directly do case(op) ooperation. 

@@ -1,0 +1,85 @@
+You are a Verilog expert, and I need your help to write a Verilog code for a Control and Status Register (CSR) module. Below are the detailed requirements, strictly reflecting the logic and structure found in the referenced csr_ref.v code:
+
+Module Name: CSR
+
+Definitions for Addresses :
+
+1. `define MEPC     12'h341  (Machine Exception Program Counter)
+2. `define MSTATUS  12'h300  (Machine Status Register)
+3. `define MTVEC    12'h305  (Machine Trap Vector Base Address Register)
+4. `define MCAUSE   12'h342  (Machine Cause Register)
+
+Internal Registers:
+
+1. mtvec_BASE (stores the upper 30 bits of the MTVEC register and it should be defined as [31:2] instead of [29:0], defining the base address for interrupts).  
+2. mtvec_MODE (stores the lower 2 bits of MTVEC, indicating the interrupt mode).  
+3. mstatus    (the 32-bit machine status register, reset to 32'h00001800 to represent the initial machine status).  
+4. mepc       (the 32-bit register used to save the PC value at exceptions, updated on an ecall or a CSR write to MEPC).  
+5. mcause_INTR (1-bit flag indicating whether an event is an interrupt (1) or a synchronous exception (0)).  
+6. mcause_ECODE (31 bits to encode the specific exception or interrupt type in the MCAUSE register).
+
+Additional Internal Wire Type Signals:
+1. mtvecout (32-bit wire): Aggregates mtvec_BASE and mtvec_MODE for read-back or usage in other logic.  
+2. mcauseout (32-bit wire): Aggregates mcause_INTR (as the highest bit) and mcause_ECODE (remaining 30 bits) to form the full MCAUSE value for read-back.  
+3. ecode (30-bit wire): Determines the exception code to record in mcause_ECODE, assigned to 11 when ecall is asserted, or 0 otherwise.
+
+Input Ports:
+1. clk (1 bit): Clock signal for synchronous register updates.  
+2. reset (1 bit): Asynchronous reset to initialize register values to defaults.  
+3. csr_add (12 bits): CSR address for selecting which CSR to read or write.  
+4. csr_wdata (32 bits): Data input for write operations.  
+5. csr_write (1 bit): Write enable signal; asserts high to permit writes to CSR registers.  
+6. csr_read (1 bit): Read enable signal; asserts high to select output data from CSR registers.  
+7. ecall (1 bit): Indicates an ecall instruction is raising a system call exception (stores epc into mepc and sets mcause_ECODE).  
+8. mret (1 bit): Signals returning from an exception, allowing mepc to be read when necessary.  
+9. epc (32 bits): Contains the PC value captured at exception time, written to mepc if an ecall occurs.  
+10. csr_mask (32 bits): A bitmask used to partially update CSR registers during write operations.
+
+Output Ports:
+1. entry (32 bits, wire type): A wire representing the complete interrupt vector base address, formed by concatenating mtvec_BASE and 2'b0.  
+2. csr_rdata (32 bits,reg type): A register storing the readback data for any CSR read operation.
+
+Function Description:
+
+1. Register Initialization and Reset
+   - Within an always @(posedge clk) block(start with always @(posedge clk) begin.), when reset is asserted:  
+     • mepc, mcause_ECODE, mcause_INTR, mtvec_BASE, and mtvec_MODE are all cleared to zero.  
+     • mstatus is set to 32'h00001800 as the default machine status.  
+
+2. Exception Handling
+   - ecode is defined as a 31-bit wire, assigned to 11 for ecall and 0 otherwise, identifying the exception code.  
+   - When ecall is high, mepc is set to epc, mcause_INTR is cleared (0), and mcause_ECODE is updated according to ecode (e.g., 11).  
+   - Otherwise, if csr_write is asserted and csr_add matches MEPC, mepc is partially updated with csr_wdata using csr_mask.  
+   - Similarly, if csr_write is asserted and csr_add matches MTVEC, mtvec_BASE is updated using a mask to selectively overwrite bits from csr_wdata.Besides, you don't need to change the value of mtvec_MODE.
+   - This part should use two 'if' statement to judge whether csr_write is high and whether csr_add is MEPC or MTVEC.
+
+3. CSR Write and Partial Updating
+   - When csr_write is high, the module checks the address in csr_add and, if recognized, uses (csr_mask & csr_wdata) | (~csr_mask & old_value) to selectively overwrite the target register’s bits.  
+   - This partial update ensures that bits masked out by csr_mask remain unchanged.
+
+4. CSR Read Logic
+   - The csr_rdata register is driven within always @(csr_read or csr_add or mret).  
+     • If csr_read is asserted and csr_add is MSTATUS, csr_rdata is set to mstatus.  
+     • If csr_read is asserted and csr_add is MEPC, or if mret is asserted, csr_rdata is set to mepc.  
+     • If csr_read is asserted and csr_add is MTVEC, the module constructs mtvecout by concatenating {mtvec_BASE, mtvec_MODE}, then assigns that to csr_rdata.  
+     • If csr_read is asserted and csr_add is MCAUSE, the module constructs mcauseout from {mcause_INTR, mcause_ECODE} and assigns it to csr_rdata.
+   - This Module should start with 'always @(csr_read or csr_add or mret) begin' and use 'if' statement.
+
+
+5. Interrupt Vector Base Address
+   - The 32-bit wire entry is formed by concatenating mtvec_BASE with 2'b0 as the low bits, serving as the base address for interrupts or traps.
+
+6. Timing and Synchronization
+   - All internal registers (mepc, mcause_ECODE, mcause_INTR, mtvec_BASE, mtvec_MODE, mstatus) update on the rising edge of clk in an always @(posedge clk) region.  
+   - The reset signal is asynchronous, forcing the module to initialize the registers to default values immediately when triggered.
+
+7. Module Interaction
+   - This CSR module records epc upon an ecall, sets mcause to indicate exception type, and allows software to read or write the defined CSR registers.  
+   - The entry output is key for jump destinations upon interrupts, providing a base address for the trap handler.
+
+8. Additional Considerations
+   - ecall overrides normal writes concurrently in the same clock cycle, ensuring mepc and mcause properly capture the exception context.  
+   - If an address other than MEPC, MTVEC, MSTATUS, or MCAUSE is specified, reading can return a default value or be safely ignored.  
+   - Because partial writes apply a bitmask, only selected bits in a CSR register are changed, preserving other fields.
+
+By explicitly describing the mtvecout, mcauseout, and ecode intermediates, this specification ensures that your CSR design fully aligns with the reference csr_ref.v file, maintaining consistent handling for exceptions, partial register writes, and interrupts. 
