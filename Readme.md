@@ -12,7 +12,7 @@
 
 ​	基于上述三个目标，本工程**以LLM模型算法调教工作为核心**，使用**正确功能的RTL代码作为学习对象**，辅以**Testbench结果作为反馈**，使LLM模型最终能完成上述三个目标。
 
-​	本工程开源于Github：
+​	本工程留档于Github：[https://github.com/battt77/LLM_For_RTL](https://github.com/battt77/LLM_For_RTL)
 
 ### 文件说明：
 
